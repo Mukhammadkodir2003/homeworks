@@ -1,0 +1,16 @@
+{
+  "port": 3030,
+  "dbUri": "mongodb://127.0.0.1:27017/ITINFO",
+  "tokenKey": "MyVeryVerySecretKey",
+  "tokenTime": "86400000",
+  "access_key": "MyAccessTokenSecretKey",
+  "refresh_key": "MyRefreshTokenSecretKey",
+  "access_time": "15s",
+  "refresh_time": "30s",
+  "refresh_time_ms": 1296000000,
+  "smtp_password": "gxbqxxuronyqvhdz",
+  "smtp_host": "smtp.gmail.com",
+  "smtp_port": 587,
+  "smtp_user": "abduqahhorovmuhammadqodir034@gmail.com",
+  "api_url": "http://localhost"
+}
