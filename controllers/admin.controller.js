@@ -1,295 +1,245 @@
+const Admin = require("../schemas/Admin.schema");
+const { adminValidation } = require("../validation/admin.validation");
+const adminJwt = require("../services/jwt.service");
 const { errorHandler } = require("../helpers/error_handler");
-const Admin = require("../schemas/Admin");
-const { adminValidation } = require("../validations/admin.validation");
-
 const bcrypt = require("bcrypt");
-
-const jwt = require("jsonwebtoken");
-
 const config = require("config");
+const { to } = require("../helpers/to_promise");
 
-const myJwt = require("../services/jwt_service");
 
-const uuid = require("uuid");
-
-const mail_service = require("../services/mail_service");
 
 const addAdmin = async (req, res) => {
-  try {
-    const { error, value } = adminValidation(req.body);
-    if (error) {
-      return res.status(400).send({ message: error.message });
-    }
-    const {
-      name,
-      email,
-      phone,
-      password,
-      is_active,
-      is_creator,
-      created_date,
-      updated_date,
-    } = value;
-    const admin = await Admin.findOne({
-      email: { $regex: email, $options: "i" },
-    });
-    if (admin) {
-      return res.status(400).send({ message: "Bunday Admin email mavjud" });
-    }
-    const hashedPassword = bcrypt.hashSync(password, 7);
 
-    const activation_link = uuid.v4();
-
-    const newAdmin = await Admin.create({
-      name,
-      email,
-      phone,
-      password: hashedPassword,
-      is_active,
-      is_creator,
-      created_date,
-      updated_date,
-      activation_link,
-    });
-
-    await mail_service.sendActivationMail(
-      email,
-      `${config.get("api_url")}:${config.get(
-        "port"
-      )}/api/admin/activate/${activation_link}`
-    );
-
-    const payload = {
-      _id: newAdmin._id,
-      email: newAdmin.email,
-      is_creator: newAdmin.is_creator,
-    };
-
-    const tokens = myJwt.generateTokens(payload);
-    newAdmin.token = tokens.refreshToken;
-    await newAdmin.save();
-
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      maxAge: config.get("refresh_time_ms"),
-    });
-
-    res.status(201).send({
-      message: "Yangi Admin qo'shildi",
-      id: newAdmin._id,
-      accessToken: tokens.accessToken,
-    });
-  } catch (error) {
-    errorHandler(res, error);
-  }
-};
-
-const loginAdmin = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const admin = await Admin.findOne({ email });
-    if (!admin) {
-      return res.status(400).send({ message: "Email yoki password noto'g'ri" });
-    }
-    const validPassword = bcrypt.compareSync(password, admin.password);
-    if (!validPassword) {
-      return res.status(400).send({ message: "Email yoki password noto'g'ri" });
-    }
-    const payload = {
-      _id: admin._id,
-      email: admin.email,
-      is_creator: admin.is_creator,
-      admin_roles: ["READ", "WRITE", "UPDATE", "DELETE"],
-    };
-
-    const tokens = myJwt.generateTokens(payload);
-    admin.token = tokens.refreshToken;
-    await admin.save();
-
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      maxAge: config.get("refresh_time_ms"),
-    });
-
-    res.send({
-      message: "Logged in,Welcome",
-      id: admin._id,
-      accessToken: tokens.accessToken,
-    });
-  } catch (error) {
-    errorHandler(res, error);
-  }
-};
-
-const logoutAdmin = async (req, res) => {
-  try {
-    const { refreshToken } = req.cookies;
-    if (!refreshToken) {
-      return res.status(403).send({ message: "Token noto'g'ri" });
-    }
-    const admin = await Admin.findOneAndUpdate(
-      { token: refreshToken },
-      { token: "" },
-      { new: true }
-    );
-    if (!admin) {
-      return res.status(400).send({ message: "Refresh token noto'g'ri" });
-    }
-
-    res.clearCookie("refreshToken");
-    res.send({ message: "Logged out", refreshToken: admin.token });
-  } catch (error) {
-    errorHandler(res, error);
-  }
-};
-
-const refreshToken = async (req, res) => {
-  try {
-    const { refreshToken } = req.cookies;
-    if (!refreshToken) {
-      return res
-        .status(403)
-        .send({ message: "Cookieda Refresh token topilmadi" });
-    }
-    const [error, decodedRefreshToken] = await to(
-      myJwt.verifyRefreshToken(refreshToken)
-    );
-    if (error) {
-      return res.status(403).send({ message: error.message });
-    }
-    const adminFromDB = await Admin.findOne({ token: refreshToken });
-    if (!adminFromDB) {
-      return res.status(403).send({
-        message: "Ruxsat etilmagan foydalanuvchi(refresh token mos emas)",
-      });
-    }
-    const payload = {
-      _id: adminFromDB._id,
-      email: adminFromDB.email,
-      is_expert: adminFromDB.is_expert,
-    };
-
-    const tokens = myJwt.generateTokens(payload);
-    adminFromDB.token = tokens.refreshToken;
-    await adminFromDB.save();
-
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      maxAge: config.get("refresh_time_ms"),
-    });
-
-    res.send({
-      message: "Refresh token updated successfully",
-      id: adminFromDB._id,
-      accessToken: tokens.accessToken,
-    });
-  } catch (error) {
-    errorHandler(res, error);
-  }
-};
-
-const getAdmins = async (req, res) => {
-  try {
-    const admins = await Admin.find();
-    res.send(admins);
-  } catch (error) {
-    errorHandler(res, error);
-  }
-};
-
-const updateAdmin = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      name,
-      email,
-      phone,
-      password,
-      is_active,
-      is_creator,
-      created_date,
-      updated_date,
-    } = req.body;
-    const admin = await Admin.find({
-      email: { $regex: email, $options: "i" },
-    });
-    console.log(admin, typeof admin);
-
-    if (admin.length > 1) {
-      return res.status(400).send({ message: "Bunday Admin email mavjud" });
-    }
-    const updatedAdmin = await Admin.findByIdAndUpdate(
-      id,
-      {
-        name,
-        email,
-        phone,
-        password,
-        is_active,
-        is_creator,
+    try {
+  
+      const {error, value} = adminValidation(req.body)
+  
+      if (error) return res.status(400).send({message:error.message});
+  
+      const { 
+        admin_name,
+        admin_email,
+        admin_phone,
+        admin_password,
+        admin_is_active,
+        admin_is_creater,
         created_date,
-        updated_date,
-      },
-      { new: true }
-    );
-    res.status(200).send({ message: "Admin updated succesfuly", updatedAdmin });
-  } catch (error) {
-    errorHandler(res, error);
-  }
+        updated_date 
+      } = value;
+  
+      const admin = await Admin.findOne({
+  
+        admin_email: { $regex: admin_email, $options: "i" }
+  
+      });
+  
+      if (admin) return res.status(400).send({message: "Admin already exists..."})
+  
+      const hashedPassword = bcrypt.hashSync(admin_password,7)
+  
+      const newAdmin = await Admin.create({ 
+        admin_name, 
+        admin_email,
+        admin_phone,
+        admin_password: hashedPassword,
+        admin_is_active,
+        admin_is_creater,
+        created_date,
+        updated_date
+      });
+  
+      const payload = {
+        _id: newAdmin._id,
+        email: newAdmin.admin_email,
+      };
+  
+      const tokens = myJwt.generateTokens(payload)
+  
+      newAdmin.token = tokens.refreshToken;
+  
+      await newAdmin.save();
+  
+      res.cookie("refreshToken",tokens.refreshToken,{
+        httpOnly: true,
+        maxAge: config.get("refresh_time_ms")
+      });
+      
+      res.send({
+        message:"Admin add successfully......",
+        id: newAdmin._id, 
+        accessToken: tokens.accessToken
+      })
+  
+    } catch (error) {
+  
+      errorHandler(res, error);
+  
+    }
+  };
+const loginAdmin = async (req, res) => {
+    console.log("123");
+
+    try {
+        const { email, password } = req.body;
+        const admin = await Admin.findOne({ email });
+        if (!admin) {
+            return res.status(401).send({ msg: "Email yoki parol xato" });
+        }
+        const validPassword = bcrypt.compareSync(password, admin.password);
+        if (!validPassword) {
+            return res.status(401).send({ msg: "Email yoki parol xato" });
+        }
+        const payload = {
+            id: admin._id,
+            email: admin.email,
+            is_active: admin.is_active,
+        };
+        const tokens = adminJwt.generateTokens(payload);
+        console.log(tokens);
+        //refreshToken
+        admin.refresh_token = tokens.refreshToken;
+        await admin.save();
+        res.cookie("refreshToken", tokens.refreshToken, {
+            hhtpOnly: config.get("refresh_token_ms"),
+        });
+
+        res.status(200).send({ message: "tizimga hush kelibsiz", refreshToken: admin.refresh_token });
+    } catch (error) {
+        errorHandler(error, res);
+    }
+};
+const logoutAdmin = async (req, res) => {
+    try {
+
+        const { refreshToken } = req.cookies;
+
+        if (!refreshToken) {
+            return res.status(404).send({ message: "Not found token" })
+        }
+        const admin = await Admin.findOneAndUpdate(
+            { refresh_token: refreshToken },
+            { refresh_token: "" },
+            { new: true }
+        );
+
+        if (!admin) {
+
+            return res.status(404).send({ message: "Author didn't exists" })
+        }
+
+        res.clearCookie("refreshToken");
+
+        res.status(200).send({ message: "succes", refreshToken: admin.refresh_token });
+
+    } catch (error) {
+        errorHandler(error, res);
+    }
 };
 
-const deleteAdmin = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deletedAdmin = await Admin.findByIdAndDelete(id);
-    res.status(200).send({ message: "Admin deleted succesfuly", deletedAdmin });
-  } catch (error) {
-    errorHandler(res, error);
-  }
+const refreshAdminToken = async (req, res) => {
+    try {
+        const { refreshToken } = req.cookies;
+
+        if (!refreshToken) {
+            return res.status(404).send({ message: "AdminToken not found token" })
+        }
+
+        const [error, tokenFromCookie] = await to(adminJwt.verifyRefreshToken(refreshToken))
+
+        if (error) {
+            return res.status(401).send({ error: error.message })
+        }
+
+        const admin = await Admin.findOne({ refresh_token: refreshToken })
+
+        if (!admin) {
+            return res.status(404).send({ message: "Admin not found" })
+        }
+
+        const payload = {
+            id: admin._id,
+            email: admin.email,
+            is_active: admin.is_active,
+        };
+
+        const tokens = adminJwt.generateTokens(payload);
+        console.log(tokens);
+
+        admin.refresh_token = tokens.refreshToken;
+        await admin.save();
+
+        res.cookie("refreshToken", tokens.refreshToken, {
+            hhtpOnly: config.get("refresh_token_ms"),
+        });
+
+        res.status(200).send({ message: "Tizimga hush kelibsiz", refreshToken: admin.refresh_token });
+
+    } catch (error) {
+        errorHandler(error, res)
+    }
 };
 
-const getAdminById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const admin = await Admin.findById(id);
-    if (id !== req.admin._id) {
-      return res.status(403).send({ message: "Access denied admin" });
+const getAllAdmin = async (req, res) => {
+    try {
+        const found = await Admin.find();
+        if (!found) {
+            return res.status(404).send({ message: "not found" })
+        }
+        res.status(200).send({ message: "succes", found });
+    } catch (error) {
+        errorHandler(error, res);
     }
-    res.send(admin);
-  } catch (error) {
-    errorHandler(res, error);
-  }
 };
 
-const adminActivate = async (req, res) => {
-  try {
-    const link = req.params.link;
-    const admin = await Admin.findOne({ activation_link: link });
-    if (!admin) {
-      return res.status(404).send({ message: "Admin mavjud emas" });
+const getById = async (req, res) => {
+    try {
+        const { id } = req.params.id;
+        const found = await Admin.findById({ id });
+        if (!found) {
+            return res.status(404).send({ message: "not found" })
+
+        }
+        res.status(200).send({ message: "succes", found });
+    } catch (error) {
+        errorHandler(error, res);
     }
-    if (admin.is_active) {
-      return res.status(400).send({ message: "Admin already activated" });
+};
+
+
+const updateById = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const data = req.body;
+        const update = await Admin.findByIdAndUpdate(id, data, { new: true });
+        if (!update) {
+            return res.status(404).send({ error: "not found" });
+        }
+        res.status(201).send({ message: "muvaffaqqiyatli yangilandi", update });
+    } catch (error) {
+        errorHandler(error, res);
     }
-    admin.is_active = true;
-    await admin.save();
-    res.send({
-      message: "Admin activated successfully",
-      is_active: admin.is_active,
-    });
-  } catch (error) {
-    errorHandler(res, error);
-  }
+};
+
+const deleteById = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const deleted = await Admin.findByIdAndDelete(id);
+        if (!deleted) {
+            return res.status(404).send({ error: "not found" });
+        }
+        res.status(201).send({ message: "muvaffaqqiyatli o'chirildi", deleted });
+    } catch (error) {
+        errorHandler(error, res);
+    }
 };
 
 module.exports = {
-  addAdmin,
-  getAdmins,
-  updateAdmin,
-  deleteAdmin,
-  getAdminById,
-  loginAdmin,
-  logoutAdmin,
-  refreshToken,
-  adminActivate,
+    addAdmin,
+    getById,
+    updateById,
+    deleteById,
+    getAllAdmin,
+    logoutAdmin,
+    loginAdmin,
+    refreshAdminToken
 };

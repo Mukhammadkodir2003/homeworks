@@ -1,0 +1,51 @@
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">author_id</th>
+      <th scope="col">title</th>
+      <th scope="col">text</th>
+      <th scope="col">is_checked</th>
+    </tr>
+  </thead>
+  <tbody id="tbody_topic">
+  </tbody>
+</table>
+<script>
+    try{
+        fetch("http://localhost:3030/api/topics/all",{
+            method:"GET"
+        })
+        .then((res)=>{
+            if(!res.ok){
+            console.log("oka malumot kelmadi hafa bo'lmesiz ")
+            return 0
+            }
+            return res.json()
+        })
+        .then((data) => {
+        const tbody_topic = document.getElementById("tbody_topic")
+        let i =1
+        console.log(data)
+        for(let topic of data.topics){
+            console.log(topic)
+                        tbody_topic.innerHTML+=`
+                <tr>
+                    <th scope="row">${i}</th>
+                    <td>${topic.author_id}</td>
+                    <td>${topic.topic_title}</td>
+                    <td>${topic.topic_text}</td>
+                    <td>${topic.is_checked}</td>
+                </tr>
+            `
+
+            i++
+
+        }
+        })  
+
+
+    }catch(err){
+        console.log(err)
+    }
+</script>

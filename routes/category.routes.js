@@ -1,17 +1,18 @@
-const express = require("express");
+const { activateAuthor } = require("../controllers/author.controller");
 const {
-  addCategory,
   getCategories,
-  updateCategory,
-  deleteCategory,
+  addCategory,
   getCategoryById,
+  deleteCategoryById,
+  updateCategory,
 } = require("../controllers/category.controller");
-const router = express.Router();
 
+const router = require("express").Router();
+
+router.get("/all", getCategories);
 router.post("/create", addCategory);
-router.get("/get", getCategories);
-router.put("/update/:id", updateCategory);
-router.delete("/delete/:id", deleteCategory);
 router.get("/:id", getCategoryById);
+router.delete("/:id", deleteCategoryById);
+router.put("/:id", updateCategory);
 
 module.exports = router;

@@ -1,0 +1,92 @@
+<style>
+    .container{
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .form{
+        display: flex;
+        flex-direction: column;
+    }
+</style>
+<form id="registerform">
+
+<div class="container">
+    <div class="mb-3">
+        <label for="firstName" class="form-label">First name</label>
+        <input type="text" class="form-control" id="firstName" aria-describedby="first_name">
+        <div id="first_name" class="form-text">We'll never share your name with anyone else.</div>
+    </div>
+    <div class="mb-3">
+        <label for="lastName" class="form-label">Last name</label>
+        <input type="text" class="form-control" id="lastName" aria-describedby="last_name">
+        <div id="last_name" class="form-text">We'll never share your name with anyone else.</div>
+    </div>
+    <div class="mb-3">
+        <label for="exampleInputEmail1" class="form-label">Email address</label>
+        <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
+        <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+    </div>
+    <div class="mb-3">
+        <label for="exampleInputPassword1" class="form-label">Password</label>
+        <input type="password" class="form-control" id="exampleInputPassword1">
+    </div>
+
+    <div class="mb-3">
+        <label for="author_nick_name" class="form-label">author_nick_name</label>
+        <input type="password" class="form-control" id="author_nick_name">
+    </div>
+
+    <button type="submit" class="btn btn-success">Sign Up</button>
+</div>
+
+</form>
+
+<script>
+const form = document.getElementById("registerform")
+
+form.addEventListener("submit", async(e) => {
+    e.preventDefault()
+    const first_name = document.getElementById("firstName").value
+    const last_name = document.getElementById("lastName").value
+    const email= document.getElementById("exampleInputEmail1").value
+    const password= document.getElementById("exampleInputPassword1").value
+    const nik_name = document.getElementById("author_nick_name").value
+
+    console.log(first_name,last_name,email,password)
+
+    try{
+
+        fetch("http://localhost:3030/api/author/create", {
+             method:"POST",
+                headers:{
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    author_first_name: first_name,
+                    author_last_name: last_name,
+                    author_email: email,
+                    author_password: password,
+                    author_nick_name: nik_name,
+                    author_phone:"91-123-45-67",
+                    author_info:"Tajribali yozuvchi va tahlilchi.",
+                    author_position:"Senior",
+                    author_photo:"https://example.com/photo.jpg"
+                })
+
+            }).then( (response) => response.json())
+        .then((data) => {
+                console.log(data)
+                localStorage.setItem("accessToken", data.accessToken)
+                return window.location.replace("/login")
+            })
+        .catch((error) => {
+                console.log("xatolik yuzagab keldi ", error.message)
+            })
+    }catch(err){
+       console.log(err.message)
+    }
+})
+</script>

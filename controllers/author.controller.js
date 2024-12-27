@@ -1,332 +1,333 @@
+const mongoose = require("mongoose");
 const { errorHandler } = require("../helpers/error_handler");
-const Author = require("../schemas/Author");
-const { authorValidation } = require("../validations/author.validation");
-
-const bcrypt = require("bcrypt");
-
-const myJwt = require("../services/jwt_service");
-
-const config = require("config");
-
 const { to } = require("../helpers/to_promise");
-
-const uuid = require("uuid");
-
-const mail_service = require("../services/mail_service");
-
-const addAuthor = async (req, res) => {
-  try {
-    const { error, value } = authorValidation(req.body);
-    if (error) {
-      return res.status(400).send({ message: error.message });
-    }
-    const {
-      first_name,
-      last_name,
-      full_name,
-      nick_name,
-      email,
-      phone,
-      password,
-      info,
-      position,
-      photo,
-      is_expert,
-      is_active,
-    } = value;
-    const author = await Author.findOne({
-      email: { $regex: email, $options: "i" },
-    });
-    if (author) {
-      return res.status(400).send({ message: "Bunday Author email mavjud" });
-    }
-
-    const hashedPassword = bcrypt.hashSync(password, 7);
-
-    const activation_link = uuid.v4();
-
-    const newAuthor = await Author.create({
-      first_name,
-      last_name,
-      full_name,
-      nick_name,
-      email,
-      phone,
-      password: hashedPassword,
-      info,
-      position,
-      photo,
-      is_expert,
-      activation_link,
-    });
-
-    await mail_service.sendActivationMail(
-      email,
-      `${config.get("api_url")}:${config.get(
-        "port"
-      )}/api/author/activate/${activation_link}`
-    );
-
-    const payload = {
-      _id: newAuthor._id,
-      email: newAuthor.email,
-      is_expert: newAuthor.is_expert,
-    };
-
-    const tokens = myJwt.generateTokens(payload);
-    newAuthor.token = tokens.refreshToken;
-    await newAuthor.save();
-
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      maxAge: config.get("refresh_time_ms"),
-    });
-
-    res.status(201).send({
-      message: "Yangi Author qo'shildi",
-      id: newAuthor._id,
-      accessToken: tokens.accessToken,
-    });
-  } catch (error) {
-    errorHandler(res, error);
-  }
-};
-
-const loginAuthor = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const author = await Author.findOne({ email });
-    if (!author) {
-      return res.status(400).send({ message: "Email yoki password noto'g'ri" });
-    }
-    const validPassword = bcrypt.compareSync(password, author.password);
-    if (!validPassword) {
-      return res.status(400).send({ message: "Email yoki password noto'g'ri" });
-    }
-    const payload = {
-      _id: author._id,
-      email: author.email,
-      is_expert: author.is_expert,
-      author_roles: ["READ", "WRITE"],
-    };
-
-    const tokens = myJwt.generateTokens(payload);
-    author.token = tokens.refreshToken;
-    await author.save();
-
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      maxAge: config.get("refresh_time_ms"),
-    });
-
-    // try {
-    //   setTimeout(function () {
-    //     throw new Error("uncaughtException example");
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    // }
-
-    // new Promise((_, reject) => {
-    //   reject(new Error("Promise rejected-unhandledRejection example"));
-    // });
-
-    res.send({
-      message: "Logged in,Welcome",
-      id: author._id,
-      accessToken: tokens.accessToken,
-    });
-  } catch (error) {
-    errorHandler(res, error);
-  }
-};
-
-const logoutAuthor = async (req, res) => {
-  try {
-    const { refreshToken } = req.cookies;
-    if (!refreshToken) {
-      return res.status(403).send({ message: "Token noto'g'ri" });
-    }
-    const author = await Author.findOneAndUpdate(
-      { token: refreshToken },
-      { token: "" },
-      { new: true }
-    );
-    if (!author) {
-      return res.status(400).send({ message: "Refresh token noto'g'ri" });
-    }
-
-    res.clearCookie("refreshToken");
-    res.send({ message: "Logged out", refreshToken: author.token });
-  } catch (error) {
-    errorHandler(res, error);
-  }
-};
-
-const refreshToken = async (req, res) => {
-  try {
-    const { refreshToken } = req.cookies;
-    if (!refreshToken) {
-      return res
-        .status(403)
-        .send({ message: "Cookieda Refresh token topilmadi" });
-    }
-    const [error, decodedRefreshToken] = await to(
-      myJwt.verifyRefreshToken(refreshToken)
-    );
-    if (error) {
-      return res.status(403).send({ message: error.message });
-    }
-    const authorFromDB = await Author.findOne({ token: refreshToken });
-    if (!authorFromDB) {
-      return res.status(403).send({
-        message: "Ruxsat etilmagan foydalanuvchi(refresh token mos emas)",
-      });
-    }
-    const payload = {
-      _id: authorFromDB._id,
-      email: authorFromDB.email,
-      is_expert: authorFromDB.is_expert,
-    };
-
-    const tokens = myJwt.generateTokens(payload);
-    authorFromDB.token = tokens.refreshToken;
-    await authorFromDB.save();
-
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      maxAge: config.get("refresh_time_ms"),
-    });
-
-    res.send({
-      message: "Refresh token updated successfully",
-      id: authorFromDB._id,
-      accessToken: tokens.accessToken,
-    });
-  } catch (error) {
-    errorHandler(res, error);
-  }
-};
+const Author = require("../schemas/Author");
+const { authorValidation } = require("../validation/author.validation");
+const bcrypt = require("bcrypt");
+const config = require("config");
+const { authorJwt } = require("../services/jwt.service");
+const uuid = require("uuid")
+const mailService = require("../services/mail.service")
 
 const getAuthors = async (req, res) => {
   try {
     const authors = await Author.find();
-    if (!authors) {
-      return res.status(400).send({ message: "Birorta Author topilmadi" });
-    }
-    res.send(authors);
+    res.send({ authors });
   } catch (error) {
-    errorHandler(res, error);
-  }
-};
-
-const updateAuthor = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      first_name,
-      last_name,
-      nick_name,
-      email,
-      phone,
-      password,
-      info,
-      position,
-      photo_url,
-      is_expert,
-      is_active,
-    } = req.body;
-    const author = await Author.find({
-      email: { $regex: email, $options: "i" },
-    });
-    console.log(author, typeof author);
-
-    if (author.length > 1) {
-      return res.status(400).send({ message: "Bunday Author email mavjud" });
-    }
-    const updatedAuthor = await Author.findByIdAndUpdate(
-      id,
-      {
-        first_name,
-        last_name,
-        nick_name,
-        email,
-        phone,
-        password,
-        info,
-        position,
-        photo: photo_url,
-        is_expert,
-        is_active,
-      },
-      { new: true }
-    );
-    res
-      .status(200)
-      .send({ message: "Author updated succesfuly", updatedAuthor });
-  } catch (error) {
-    errorHandler(res, error);
-  }
-};
-
-const deleteAuthor = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deletedAuthor = await Author.findByIdAndDelete(id);
-    res
-      .status(200)
-      .send({ message: "Author deleted succesfuly", deletedAuthor });
-  } catch (error) {
-    errorHandler(res, error);
+    errorHandler(error, res);
   }
 };
 
 const getAuthorById = async (req, res) => {
   try {
     const id = req.params.id;
-    console.log(id);
-    if (id !== req.author._id) {
-      return res.status(403).send({ message: "Access denied author" });
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).send({ message: "Id noto'g'ri" });
     }
-    const author = await Author.findById(id);
+
+
+
+
+
+    const author = await Author.findOne({ _id: id });
+
     if (!author) {
-      return res.status(404).send({ message: "Author mavjud emas" });
+      return res.status(400).send({ message: "Bunday muallif mavjud emas" });
     }
-    res.send(author);
+
+    res.send({ author });
   } catch (error) {
-    errorHandler(res, error);
+    errorHandler(error, res);
   }
 };
 
-const authorActivate = async (req, res) => {
+const addAuthor = async (req, res) => {
+  console.log(req.body);
+  
+  try {
+    const { error, value } = authorValidation(req.body);
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    const {
+      author_first_name,
+      author_last_name,
+      author_nick_name,
+      author_email,
+      author_phone,
+      author_password,
+      author_info,
+      author_position,
+      author_photo,
+      is_expert,
+    } = req.body;
+
+    const hashedPassword = bcrypt.hashSync(author_password, 7);
+
+    const activation_link = uuid.v4()
+
+    const newAuthor = await Author.create({
+      author_first_name,
+      author_last_name,
+      author_nick_name,
+      author_email,
+      author_phone,
+      author_password: hashedPassword,
+      author_info,
+      author_position,
+      author_photo,
+      is_expert,
+      activation_link,
+    });
+
+    await mailService.sendMailActivationCode(newAuthor.author_email,
+      `${config.get("api_url")}/api/author/activate/${activation_link}`
+    );
+
+    res.status(201).send({ message: "Yangi muallif qo'shildi", newAuthor });
+  } catch (error) {
+    errorHandler(error, res);
+  }
+};
+
+const loginAuthor = async (req, res) => {
+  try {
+    const { author_email, author_password } = req.body;
+    const author = await Author.findOne({ author_email });
+    if (!author) {
+
+      return res.status(401).send({ message: "Email yoki parol noto'g'ri" });
+    }
+
+    const payload = {
+      id: author._id,
+      email: author.author_email,
+      is_active: author.is_active,
+    };
+
+    const validPassword = bcrypt.compareSync(
+      author_password,
+      author.author_password
+    );
+    if (!validPassword) {
+      console.log(validPassword);
+
+      return res.status(401).send({ message: "Email yoki parol noto'g'ri" });
+    }
+    const tokens = authorJwt.generateTokens(payload);
+    author.refresh_token = tokens.refreshToken
+    await author.save()
+    res.cookie("refreshToken", tokens.refreshToken, {
+      httpOnly: true,
+      maxAge: config.get("refresh_token_ms")
+    });
+
+
+    // try {
+    //   setTimeout(function(){
+    //     const err = new Error("unCaughException error")
+    //     throw err 
+    //   }, 1000)
+    // } catch (error) {
+    //   console.log(error);
+
+    // }
+
+    // new Promise((_, reject)=>{
+    //   reject( new Error("unhandledRejection example"))
+    // })
+
+
+    // const token = jwt.sign(payload, config.get("tokenKey"), {
+    //   expiresIn: config.get("tokenTime"),
+    // });
+    res.status(200).send({ message: "Tizimga hush kelibsiz", accessToken: tokens.accessToken,
+      author_id: author._id
+     });
+  } catch (error) {
+    errorHandler(error, res);
+  }
+};
+
+const logoutAuthor = async (req, res) => {
+  try {
+    const { refreshToken } = req.cookies
+    console.log(refreshToken);
+
+
+    if (!refreshToken) {
+      return res.status(400).send({ message: "Token topilmadi!" });
+    }
+
+    const author = await Author.findOneAndUpdate(
+      { refresh_token: refreshToken },
+      { refresh_token: "" },
+      { new: true }
+    );
+    if (!author) {
+      return res.status(400).send({ message: "Bunday token author yo'q" });
+    }
+    res.clearCookie("refreshToken");
+
+    return res.status(200).send({ refreshToken: author.refresh_token });
+
+  } catch (error) {
+    errorHandler(error, res)
+  }
+}
+
+
+const refreshAuthorToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.cookies
+
+    if (!refreshToken) {
+      return res.status(400).send({ message: "Cookie token topilmadi!" });
+    }
+    const [error, tokenFromCookie] = await to(
+      authorJwt.verifyRefreshToken(refreshToken)
+    );
+    if (error) {
+      return res.status(401).send({ error: error.message })
+    }
+    const author = await Author.findOne({ refresh_token: refreshToken });
+    if (!author) {
+
+      return res.status(404).send({ message: "Author not found" })
+    }
+
+    const payload = {
+      id: author._id,
+      email: author.author_email,
+      is_active: author.is_active,
+    };
+
+    const tokens = authorJwt.generateTokens(payload);
+    author.refresh_token = tokens.refreshToken
+    await author.save();
+
+    res.cookie("refreshToken", tokens.refreshToken, {
+      httpOnly: true,
+      maxAge: config.get("refresh_token_ms")
+    });
+
+
+
+
+    // const token = jwt.sign(payload, config.get("tokenKey"), {
+    //   expiresIn: config.get("tokenTime"),
+    // });
+    res.status(200).send({ message: "Tizimga hush kelibsiz", accesToken: tokens.accessToken });
+
+  } catch (error) {
+    errorHandler(error, res)
+  }
+}
+
+
+const deleteAuthorById = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).send({ message: "Id noto'g'ri" });
+    }
+
+    const author = await Author.deleteOne({ _id: id });
+
+    if (!author.deletedCount) {
+      return res
+        .status(400)
+        .send({ message: "Muallif topilmadi yoki o'chirilmagan" });
+    }
+
+    res.send({ message: "Muallif o'chirildi" });
+  } catch (error) {
+    errorHandler(error, res);
+  }
+};
+
+const updateAuthor = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const {
+      author_first_name,
+      author_last_name,
+      author_nick_name,
+      author_email,
+      author_phone,
+      author_password,
+      author_info,
+      author_position,
+      author_photo,
+      is_expert,
+    } = req.body;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).send({ message: "Id noto'g'ri" });
+    }
+
+    const author = await Author.updateOne(
+      { _id: id },
+      {
+        author_first_name,
+        author_last_name,
+        author_nick_name,
+        author_email,
+        author_phone,
+        author_password,
+        author_info,
+        author_position,
+        author_photo,
+        is_expert,
+      }
+    );
+
+    if (!author.nModified) {
+      return res.status(400).send({ message: "Muallif yangilanmadi" });
+    }
+
+    res.send({ message: "Muallif yangilandi", id: newAuthor._id, newAuthor });
+  } catch (error) {
+    errorHandler(error, res);
+  }
+};
+
+const activateAuthor = async (req, res) => {
   try {
     const link = req.params.link;
     const author = await Author.findOne({ activation_link: link });
+
     if (!author) {
-      return res.status(404).send({ message: "Author mavjud emas" });
+      return res.status(400).send({ message: "Bunday avtor topilmadi" })
     }
     if (author.is_active) {
-      return res.status(400).send({ message: "Author already activated" });
+      return res.status(400).send({ message: "Avtor oldin faollashtirilgan" })
     }
+
     author.is_active = true;
-    await author.save();
+    await author.save()
+
     res.send({
-      message: "Author activated successfully",
-      is_active: author.is_active,
-    });
+      message: "Avtor faollashtirildi",
+      is_active: author.is_active
+    })
+
   } catch (error) {
-    errorHandler(res, error);
+
   }
-};
+}
 
 module.exports = {
-  addAuthor,
   getAuthors,
-  updateAuthor,
-  deleteAuthor,
   getAuthorById,
+  addAuthor,
+  deleteAuthorById,
+  updateAuthor,
   loginAuthor,
   logoutAuthor,
-  refreshToken,
-  authorActivate,
+  refreshAuthorToken,
+  activateAuthor
 };

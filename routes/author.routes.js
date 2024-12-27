@@ -1,27 +1,28 @@
-const express = require("express");
 const {
-  addAuthor,
-  authorActivate,
   getAuthors,
-  updateAuthor,
-  deleteAuthor,
+  addAuthor,
   getAuthorById,
+  deleteAuthorById,
+  updateAuthor,
   loginAuthor,
   logoutAuthor,
-  refreshToken,
+  refreshAuthorToken,
+  activateAuthor,
 } = require("../controllers/author.controller");
-const router = express.Router();
-const authorPolice = require("../middleware/author_police");
-const authorRolesPolice = require("../middleware/author_roles_police");
 
+const authorPolice = require("../police_middleware/author_police");
+const authorSelfPolice = require("../police_middleware/author_self_police");
+
+const router = require("express").Router();
+
+router.get("/all",authorPolice, getAuthors);
+router.get("/activate/:link", activateAuthor);
 router.post("/create", addAuthor);
 router.post("/login", loginAuthor);
 router.post("/logout", logoutAuthor);
-router.post("/refresh", refreshToken);
-router.get("/get", authorPolice, getAuthors);
-router.get("/activate/:link", authorActivate);
-router.put("/update/:id", updateAuthor);
-router.delete("/delete/:id", deleteAuthor);
-router.get("/:id", authorRolesPolice(["READ"]), getAuthorById);
+router.post("/refresh", refreshAuthorToken);
+router.get("/:id",authorPolice,authorSelfPolice, getAuthorById);
+router.delete("/:id", deleteAuthorById);
+router.put("/:id", updateAuthor);
 
 module.exports = router;

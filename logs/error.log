@@ -1,0 +1,54 @@
+2024-12-23T11:12:27.124Z  [31merror[39m:  error log ma'lumotlar
+2024-12-23T11:13:22.379Z  error:  error log ma'lumotlar
+2024-12-23T11:15:03.995Z  error:  error log ma'lumotlar
+2024-12-23T11:15:06.999Z  error:  error log ma'lumotlar
+2024-12-23T11:15:12.281Z  error:  error log ma'lumotlar
+2024-12-23T11:15:13.669Z  error:  error log ma'lumotlar
+2024-12-23T11:15:15.066Z  error:  error log ma'lumotlar
+2024-12-23T11:15:16.304Z  error:  error log ma'lumotlar
+2024-12-23T11:16:41.154Z  error:  error log ma'lumotlar
+2024-12-23T11:16:47.901Z  error:  error log ma'lumotlar
+2024-12-23T11:16:50.155Z  error:  error log ma'lumotlar
+2024-12-23T11:16:54.533Z  error:  error log ma'lumotlar
+2024-12-23T11:17:05.253Z  error:  error log ma'lumotlar
+2024-12-23T11:17:43.009Z  error:  error log ma'lumotlar
+2024-12-23T11:19:57.243Z  error:  error log ma'lumotlar
+2024-12-23T11:20:37.022Z  error:  error log ma'lumotlar
+2024-12-23T11:20:38.587Z  error:  error log ma'lumotlar
+2024-12-23T11:20:42.334Z  error:  error log ma'lumotlar
+2024-12-23T11:20:52.504Z  error:  error log ma'lumotlar
+2024-12-23T11:21:28.001Z  error:  error log ma'lumotlar
+2024-12-23T11:21:42.350Z  error:  error log ma'lumotlar
+2024-12-23T11:21:56.162Z  error:  error log ma'lumotlar
+2024-12-23T11:22:09.041Z  error:  error log ma'lumotlar
+2024-12-23T11:24:28.736Z  error:  error log ma'lumotlar
+2024-12-23T11:24:33.416Z  error:  error log ma'lumotlar
+2024-12-23T11:26:15.421Z  error:  error log ma'lumotlar
+2024-12-23T11:34:32.041Z  error:  error log ma'lumotlar
+2024-12-24T10:25:09.152Z  error: #if requires exactly one argument
+2024-12-24T10:25:15.023Z  error: #if requires exactly one argument
+2024-12-24T10:25:28.882Z  error: #if requires exactly one argument
+2024-12-24T10:26:24.760Z  error: #if requires exactly one argument
+2024-12-24T10:26:25.395Z  error: #if requires exactly one argument
+2024-12-24T10:26:25.575Z  error: #if requires exactly one argument
+2024-12-24T10:26:25.738Z  error: #if requires exactly one argument
+2024-12-24T10:26:25.895Z  error: #if requires exactly one argument
+2024-12-24T10:26:26.240Z  error: #if requires exactly one argument
+2024-12-24T10:26:26.758Z  error: #if requires exactly one argument
+2024-12-24T10:26:26.906Z  error: #if requires exactly one argument
+2024-12-25T07:41:18.294Z  error: Topic validation failed: author_id: Cast to ObjectId failed for value "123abc" (type string) at path "author_id" because of "BSONError", expert_id: Cast to ObjectId failed for value "456def" (type string) at path "expert_id" because of "BSONError"
+2024-12-25T07:49:47.732Z  error: Schema hasn't been registered for model "Expert".
+Use mongoose.model(name, schema)
+2024-12-25T07:51:11.318Z  error: Schema hasn't been registered for model "Expert".
+Use mongoose.model(name, schema)
+2024-12-25T09:52:52.901Z  error: Author validation failed: author_nick_name: Path `author_nick_name` is required.
+2024-12-25T11:47:13.813Z  error: Author validation failed: author_nick_name: Path `author_nick_name` is required.
+2024-12-25T11:47:15.876Z  error: Author validation failed: author_nick_name: Path `author_nick_name` is required.
+2024-12-25T11:47:16.470Z  error: Author validation failed: author_nick_name: Path `author_nick_name` is required.
+2024-12-25T11:50:35.046Z  error: Author validation failed: author_nick_name: Path `author_nick_name` is required.
+2024-12-25T11:54:18.537Z  error: Author validation failed: author_nick_name: Path `author_nick_name` is invalid (abu123!).
+2024-12-25T11:59:53.692Z  error: Author validation failed: author_nick_name: Path `author_nick_name` is required.
+2024-12-25T12:01:14.247Z  error: E11000 duplicate key error collection: test.authors index: author_nick_name_1 dup key: { author_nick_name: "abu123" }
+2024-12-25T12:06:50.421Z  error: E11000 duplicate key error collection: test.authors index: author_nick_name_1 dup key: { author_nick_name: "abu123" }
+2024-12-25T12:08:15.461Z  error: E11000 duplicate key error collection: test.authors index: author_nick_name_1 dup key: { author_nick_name: "abu123" }
+2024-12-26T05:46:22.938Z  error: E11000 duplicate key error collection: test.authors index: author_nick_name_1 dup key: { author_nick_name: "tikidiki" }

@@ -1,78 +1,54 @@
 const { Schema, model } = require("mongoose");
 
-const authorSchema = new Schema(
-  {
-    first_name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    last_name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    nick_name: {
-      type: String,
-      required: true,
-      trim: true,
-      unique: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      match: [
-        /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/,
-        "Iltimos email adresni to'g'ri kiriting!",
-      ],
-    },
-    phone: {
-      type: String,
-      unique: true,
-      validate: {
-        validator: function (value) {
-          return /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$/.test(value);
-        },
-        message: (props) => `${props.value}-Telefon raqamni to'g'ri kiriting`,
-      },
-    },
-    password: {
-      type: String,
-      required: true,
-      minlength: [4, "Parol juda qisqa"],
-    },
-    info: {
-      type: String,
-      maxlength: 2000,
-    },
-    position: {
-      type: String,
-      trim: true,
-    },
-    photo: {
-      type: String,
-      default: "default_photo.jpg",
-    },
-    is_expert: {
-      type: Boolean,
-      default: false,
-    },
-    is_active: {
-      type: Boolean,
-      default: true,
-    },
-    token: {
-      type: String,
-    },
-    activation_link: {
-      type: String,
-    },
+const authorSchema = new Schema({
+  author_first_name: {
+    type: String,
+    required: true,
+    trim: true,
   },
-  {
-    versionKey: false,
-  }
-);
+  author_last_name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  author_nick_name: {
+    type: String,
+    minlength: 3,
+    maxlength: 20
+  },
+  author_email: {
+    type: String,
+    lowercase: true,
+    match: [
+      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,4})+$/,
+      "Iltimos, emailni to'g'ri kiriting",
+    ],
+  },
+  author_phone: {
+    type: String,
+  },
+  author_password: {
+    type: String,
+  },
+  author_info: {
+    type: String, maxlength: [150, "Qisqaroq info kerak"]
+  },
+  author_position: {
+    type: String
+  },
+  author_photo: {
+    type: String
+  },
+  is_expert: {
+    type: Boolean,
+    default: false
+  },
+  author_is_active: {
+    type: Boolean,
+    default: true
+  },
+  refresh_token: String,
+  activation_link : String
+});
 
 module.exports = model("Author", authorSchema);

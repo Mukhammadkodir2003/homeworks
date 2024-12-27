@@ -1,26 +1,27 @@
-const express = require("express");
 const {
-  addAdmin,
-  getAdmins,
-  updateAdmin,
-  deleteAdmin,
-  getAdminById,
-  loginAdmin,
-  logoutAdmin,
-  refreshToken,
-  adminActivate,
-} = require("../controllers/admin.controller");
-const router = express.Router();
-const adminPolice = require("../middleware/admin_police");
-
-router.post("/create", addAdmin);
-router.post("/login", loginAdmin);
-router.post("/logout", logoutAdmin);
-router.post("/refresh", refreshToken);
-router.get("/get", adminPolice, getAdmins);
-router.get("/activate/:link", adminActivate);
-router.put("/update/:id", updateAdmin);
-router.delete("/delete/:id", deleteAdmin);
-router.get("/:id", adminPolice, getAdminById);
-
-module.exports = router;
+    addAdmin,
+    getById,
+    updateById,
+    deleteById,
+    getAllAdmin,
+    logoutAdmin,
+    loginAdmin,
+    refreshAdminToken
+  } = require("../controllers/admin.controller");
+  const adminPolice = require("../police_middleware/admin.police");
+  const adminSelfPolice = require("../police_middleware/admin.self.police");
+  
+  const router = require("express").Router();
+  
+  router.get("/all", userPolice, getAllAdmin); 
+  router.post("/create", addAdmin); 
+  router.post("/login", loginAdmin); 
+  router.post("/logout", logoutAdmin);
+  router.post("/refresh", refreshAdminToken);
+  router.get("/:id",adminPolice, adminSelfPolice, getById);
+  router.delete("/:id", deleteById);
+  router.put("/:id", updateById); 
+  
+  module.exports = router;
+  
+  
